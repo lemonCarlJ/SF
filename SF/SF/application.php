@@ -181,32 +181,29 @@ class application
 
     /**
      * 执行应用
-     * @param string $commond 命令 [ '' ]
-     * @param array $parameter 参数 [ array ]
+     * @param string $command 命令 [ '' ]
+     * @param array $arguments 参数 [ array ]
      * @param array $controller 依赖控制器 [ null ]
      * @return boolean|object|mixed 返回加载失败或者执行应用或者应用方法
      * @throws \ReflectionException
      */
-    public function execute( $commond = '', $parameter = array(), $controller = null )
+    public function execute( $command = '', $arguments = array(), $controller = null )
     {
         //控制权限交给控制台
-        if( empty( $commond ) )
+        if( empty( $command ) )
         {
             //控制台命令
-            $commond = $this->SF->console->commond;
+            $command = $this->SF->console->command;
 
             //空命令废弃此次执行
-            if( $commond == '' )
+            if( $command == '' )
             {
                 return '';
             }
 
             //控制台参数
-            $parameter = $this->SF->console->parameter;
+            $arguments = $this->SF->console->arguments;
         }
-
-        //规范命令
-        $commond = trim( trim( $commond, '/' ), '\\' );
 
         //载入基础控制器
         if( is_string( $controller ) )
@@ -223,10 +220,10 @@ class application
         }
 
         //获取执行文件路径
-        if( ( $execute_route = dirname( $commond ) ) != '.' )
+        if( ( $execute_route = dirname( $command ) ) != '.' )
         {
             //执行模块
-            $execute_module = basename( $commond );
+            $execute_module = basename( $command );
 
             //执行文件
             $execute_file = application\directory . 'application' . DIRECTORY_SEPARATOR . str_replace( '\\', '/', $execute_route ) . '.php';
@@ -299,7 +296,7 @@ class application
                             $module_parameter_name = $module_parameter->getName();
 
                             //如果已经赋值则不进行注入
-                            if( ! isset( $parameter[ $module_parameter_name ] ) )
+                            if( ! isset( $arguments[ $module_parameter_name ] ) )
                             {
                                 //如果有默认值则不进行注入
                                 if( ! $module_parameter->isDefaultValueAvailable() )
@@ -324,7 +321,7 @@ class application
                                     $module_arguments[ $module_parameter_name ] = $module_parameter->getDefaultValue();
                                 }
                             }else{
-                                $module_arguments[ $module_parameter_name ] = $parameter[ $module_parameter_name ];
+                                $module_arguments[ $module_parameter_name ] = $arguments[ $module_parameter_name ];
                             }
                         }
 
