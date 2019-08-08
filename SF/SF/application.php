@@ -263,7 +263,7 @@ class application
                                     {
                                         $construct_arguments[ $locate ] = $this->SF;
                                     }else{
-                                        $depend_module_name = basename( $depend_module );
+                                        $depend_module_name = basename( str_replace( '\\', '/', $depend_module ) );
                                         $construct_arguments[ $locate ] = $this->SF->$depend_module_name;
                                     }
                                 }else{
@@ -311,7 +311,7 @@ class application
                                         {
                                             $module_arguments[ $module_parameter_name ] = $this->SF;
                                         }else{
-                                            $depend_module_name = basename( $depend_module );
+                                            $depend_module_name = basename( str_replace( '\\', '/', $depend_module ) );
                                             $module_arguments[ $module_parameter_name ] = $this->SF->$depend_module_name;
                                         }
                                     }else{
