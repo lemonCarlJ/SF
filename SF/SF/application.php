@@ -205,6 +205,9 @@ class application
             $arguments = $this->SF->console->arguments;
         }
 
+        //修正系统地址常量
+        $command = str_replace( '\\', '/', $command );
+
         //载入基础控制器
         if( is_string( $controller ) )
         {
@@ -226,7 +229,7 @@ class application
             $execute_module = basename( $command );
 
             //执行文件
-            $execute_file = application\directory . 'application' . DIRECTORY_SEPARATOR . str_replace( '\\', '/', $execute_route ) . '.php';
+            $execute_file = application\directory . 'application' . DIRECTORY_SEPARATOR . $execute_route . '.php';
 
             //开始执行
             if( loader::include_file( $execute_file ) )
@@ -341,6 +344,11 @@ class application
         }
 
         return false;
+    }
+
+    public function model( $name )
+    {
+
     }
 
     /**

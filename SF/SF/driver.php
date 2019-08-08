@@ -173,7 +173,7 @@ class driver
                     }
 
                     //实例化程序
-                    $handler_name = basename( $handler );
+                    $handler_name = basename( str_replace( '\\', '/', $handler ) );
                     $this->storage[ $drive ]->$handler_name = new $handler();
 
                     //记录驱动器初始化
@@ -185,28 +185,18 @@ class driver
 
                 //虚拟驱动
                 case 4 :
-                    //是否发现处理程序
-                    if( ! class_exists( $handler ) )
+                    //驱动器是否已经绑定
+                    if( isset( $this->handler[ $drive ] ) )
                     {
-                        \SF::report( 'Driver Not Found Handler [ ' . $drive . '/' . $handler . ' ]' );
+                        \SF::report( 'Driver Has Been Bound Handler [ ' . $drive . '/' . $handler . ' ]' );
                         return false;
                     }
 
-                    //实例化驱动器
-                    if( ! isset( $this->storage[ $drive ] ) )
-                    {
-                        $this->storage[ $drive ] = new $drive_name();
-
-                        //初始化记录
-                        $this->handler[ $drive ] = array();
-                    }
-
                     //实例化程序
-                    $handler_name = basename( $handler );
-                    $this->storage[ $drive ] = new $handler();
+                    $this->storage[ $drive ] = new $drive_name();
 
                     //记录驱动器初始化
-                    $this->handler[ $drive ] = $handler;
+                    $this->handler[ $drive ] = $drive_name;
 
                     return true;
 
