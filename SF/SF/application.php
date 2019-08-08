@@ -8,6 +8,8 @@
  */
 namespace SF;
 
+use const SF\application\directory;
+
 class application
 {
     /**
@@ -208,6 +210,93 @@ class application
         //修正系统地址常量
         $command = str_replace( '\\', '/', $command );
 
+        //获取执行文件路径
+        if( ( $execute_route = dirname( $command ) ) != '.' )
+        {
+            //初始化应用
+            $initialize = $this->module( $execute_route, array(), $controller );
+
+            //执行模块名
+            $execute_module = basename( $command );
+
+            //执行应用名
+            $execute_class = 'SF\application\\' . str_replace( '/', '\\', $execute_route );
+
+            if( method_exists( $execute_class, $execute_module ) )
+            {
+                $reflection_class = new \ReflectionClass( $execute_class );
+
+                /**
+                 * 执行应用模块
+                 */
+                if( $module = $reflection_class->getMethod( $execute_module ) )
+                {
+                    //初始化注入实参
+                    $module_arguments = array();
+
+                    //获取被注入形参
+                    $module_parameters = $module->getParameters();
+
+                    foreach( $module_parameters as $locate => $module_parameter )
+                    {
+                        //模块参数名
+                        $module_parameter_name = $module_parameter->getName();
+
+                        //如果已经赋值则不进行注入
+                        if( ! isset( $arguments[ $module_parameter_name ] ) )
+                        {
+                            //如果有默认值则不进行注入
+                            if( ! $module_parameter->isDefaultValueAvailable() )
+                            {
+                                if( $depend = $module_parameter->getClass() )
+                                {
+                                    //注入模块名
+                                    $depend_module = $depend->getName();
+
+                                    //开始注入参数
+                                    if( $depend_module == 'SF\SF' )
+                                    {
+                                        $module_arguments[ $module_parameter_name ] = $this->SF;
+                                    }else{
+                                        $depend_module_name = basename( str_replace( '\\', '/', $depend_module ) );
+                                        $module_arguments[ $module_parameter_name ] = $this->SF->$depend_module_name;
+                                    }
+                                }else{
+                                    \SF::report( 'Module ' . $execute_module . ' Is Missing Parameter [ ' . $module_parameter_name . ' ]' );
+                                }
+                            }else{
+                                $module_arguments[ $module_parameter_name ] = $module_parameter->getDefaultValue();
+                            }
+                        }else{
+                            $module_arguments[ $module_parameter_name ] = $arguments[ $module_parameter_name ];
+                        }
+                    }
+
+                    //参数对等
+                    if( count( $module_arguments ) == count( $module_parameters ) )
+                    {
+                        //执行模块
+                        return $module->invokeArgs( $initialize, $module_arguments );
+                    }
+                }
+            }else{
+                \SF::report( 'Application Execution Failed [ ' . $execute_route . '/' . $execute_module . ' ]' );
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 载入应用模块
+     * @param string $router 模块路由 [ '' ]
+     * @param array $arguments 参数 [ array ]
+     * @param array $controller 依赖控制器 [ null ]
+     * @return boolean|object|mixed 返回加载失败或者执行应用或者应用方法
+     * @throws \ReflectionException
+     */
+    public function module( $router, $arguments = array(), $controller = null )
+    {
         //载入基础控制器
         if( is_string( $controller ) )
         {
@@ -222,133 +311,74 @@ class application
             }
         }
 
-        //获取执行文件路径
-        if( ( $execute_route = dirname( $command ) ) != '.' )
+        //执行应用名
+        $execute_class = 'SF\application\\' . str_replace( '/', '\\', $router );
+
+        //尝试载入应用
+        if( ! class_exists( $execute_class ) )
         {
-            //执行模块
-            $execute_module = basename( $command );
-
             //执行文件
-            $execute_file = application\directory . 'application' . DIRECTORY_SEPARATOR . $execute_route . '.php';
+            $execute_file = application\directory . 'application' . DIRECTORY_SEPARATOR . $router . '.php';
 
-            //开始执行
-            if( loader::include_file( $execute_file ) )
+            if( ! loader::include_file( $execute_file ) )
             {
-                $execute_class = 'SF\application\\' . str_replace( '/', '\\', $execute_route );
-
-                if( method_exists( $execute_class, $execute_module ) )
-                {
-                    $reflection_class = new \ReflectionClass( $execute_class );
-
-                    /**
-                     * 初始化执行应用
-                     */
-                    if( $construct = $reflection_class->getConstructor() )
-                    {
-                        //初始化注入实参
-                        $construct_arguments = array();
-
-                        //获取被注入形参
-                        $construct_parameters = $construct->getParameters();
-
-                        foreach( $construct_parameters as $locate => $construct_parameter )
-                        {
-                            //如果有默认值则不进行注入
-                            if( ! $construct_parameter->isDefaultValueAvailable() )
-                            {
-                                if( $depend = $construct_parameter->getClass() )
-                                {
-                                    //注入模块名
-                                    $depend_module = $depend->getName();
-
-                                    //开始注入参数
-                                    if( $depend_module == 'SF\SF' )
-                                    {
-                                        $construct_arguments[ $locate ] = $this->SF;
-                                    }else{
-                                        $depend_module_name = basename( str_replace( '\\', '/', $depend_module ) );
-                                        $construct_arguments[ $locate ] = $this->SF->$depend_module_name;
-                                    }
-                                }else{
-                                    throw new \Exception( 'Application Execution Initialization Missing Parameters [ ' . $construct_parameter->getName() . ' ]', E_USER_ERROR );
-                                }
-                            }else{
-                                $construct_arguments[ $locate ] = $construct_parameter->getDefaultValue();
-                            }
-                        }
-
-                        $initialize = $reflection_class->newInstanceArgs( $construct_arguments );
-                    }else{
-                        $initialize = $reflection_class->newInstance();
-                    }
-
-                    /**
-                     * 执行应用模块
-                     */
-                    if( $module = $reflection_class->getMethod( $execute_module ) )
-                    {
-                        //初始化注入实参
-                        $module_arguments = array();
-
-                        //获取被注入形参
-                        $module_parameters = $module->getParameters();
-
-                        foreach( $module_parameters as $locate => $module_parameter )
-                        {
-                            //模块参数名
-                            $module_parameter_name = $module_parameter->getName();
-
-                            //如果已经赋值则不进行注入
-                            if( ! isset( $arguments[ $module_parameter_name ] ) )
-                            {
-                                //如果有默认值则不进行注入
-                                if( ! $module_parameter->isDefaultValueAvailable() )
-                                {
-                                    if( $depend = $module_parameter->getClass() )
-                                    {
-                                        //注入模块名
-                                        $depend_module = $depend->getName();
-
-                                        //开始注入参数
-                                        if( $depend_module == 'SF\SF' )
-                                        {
-                                            $module_arguments[ $module_parameter_name ] = $this->SF;
-                                        }else{
-                                            $depend_module_name = basename( str_replace( '\\', '/', $depend_module ) );
-                                            $module_arguments[ $module_parameter_name ] = $this->SF->$depend_module_name;
-                                        }
-                                    }else{
-                                        \SF::report( 'Module ' . $execute_module . ' Is Missing Parameter [ ' . $module_parameter_name . ' ]' );
-                                    }
-                                }else{
-                                    $module_arguments[ $module_parameter_name ] = $module_parameter->getDefaultValue();
-                                }
-                            }else{
-                                $module_arguments[ $module_parameter_name ] = $arguments[ $module_parameter_name ];
-                            }
-                        }
-
-                        //参数对等
-                        if( count( $module_arguments ) == count( $module_parameters ) )
-                        {
-                            //执行模块
-                            return $module->invokeArgs( $initialize, $module_arguments );
-                        }
-                    }
-                }else{
-                    \SF::report( 'Application Execution Failed [ ' . $execute_route . '/' . $execute_module . ' ]' );
-                }
-            }else{
                 \SF::report( 'Not Found The Executable File [ ' . $execute_file . ' ]' );
+                return false;
             }
         }
 
-        return false;
-    }
+        //开始执行
+        $reflection_class = new \ReflectionClass( $execute_class );
 
-    public function model( $name )
-    {
+        /**
+         * 初始化执行应用
+         */
+        if( $construct = $reflection_class->getConstructor() )
+        {
+            //初始化注入实参
+            $construct_arguments = array();
 
+            //获取被注入形参
+            $construct_parameters = $construct->getParameters();
+
+            foreach( $construct_parameters as $locate => $construct_parameter )
+            {
+                //模块参数名
+                $construct_parameter_name = $construct_parameter->getName();
+
+                //如果已经赋值则不进行注入
+                if( ! isset( $arguments[ $construct_parameter_name ] ) )
+                {
+                    //如果有默认值则不进行注入
+                    if (!$construct_parameter->isDefaultValueAvailable()) {
+                        if ($depend = $construct_parameter->getClass()) {
+                            //注入模块名
+                            $depend_module = $depend->getName();
+
+                            //开始注入参数
+                            if ($depend_module == 'SF\SF') {
+                                $construct_arguments[$locate] = $this->SF;
+                            } else {
+                                $depend_module_name = basename(str_replace('\\', '/', $depend_module));
+                                $construct_arguments[$locate] = $this->SF->$depend_module_name;
+                            }
+                        } else {
+                            throw new \Exception('Application Execution Initialization Missing Parameters [ ' . $construct_parameter->getName() . ' ]', E_USER_ERROR);
+                        }
+                    } else {
+                        $construct_arguments[$locate] = $construct_parameter->getDefaultValue();
+                    }
+                }else{
+                    $construct_arguments[ $construct_parameter_name ] = $arguments[ $construct_parameter_name ];
+                }
+            }
+
+            $initialize = $reflection_class->newInstanceArgs( $construct_arguments );
+        }else{
+            $initialize = $reflection_class->newInstance();
+        }
+
+        return $initialize;
     }
 
     /**
