@@ -146,24 +146,29 @@ class request
         //过滤方法
         $methods = array_merge( $this->filter, $filter );
 
-        if( is_array( $data ) )
+        if( ! empty( $filter ) )
         {
-            //循环过滤
-            foreach ( $data as $key => $value )
+            if( is_array( $data ) )
             {
-                if( is_array( $value ) )
+                //循环过滤
+                foreach ( $data as $key => $value )
                 {
-                    $result[ $key ] = $this->filter( $value );
-                }else{
-                    $result[ $key ] = $value;
+                    if( is_array( $value ) )
+                    {
+                        $result[ $key ] = $this->filter( $value );
+                    }else{
+                        $result[ $key ] = $value;
+                    }
+                }
+            }else{
+                //执行过滤
+                foreach( $methods as $method )
+                {
+                    $result = $method( $data );
                 }
             }
         }else{
-            //执行过滤
-            foreach( $methods as $method )
-            {
-                $result = $method( $data );
-            }
+            $result = $data;
         }
 
         return $result;

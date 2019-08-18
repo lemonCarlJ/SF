@@ -14,7 +14,7 @@ class response
      * 预设发送报头
      * @var array
      */
-    public $header = array();
+    protected $header = array();
 
     /**
      * 默认状态码,建议追加状态从大一点的数组开始设置，防止系统默认状态更新
@@ -24,6 +24,7 @@ class response
         0 => 'ok', //ok
         1 => 'unauthorized', //需要授权
         2 => 'no permission', //无权限
+        3 => 'failed to get data' //获取数据失败
     );
 
     /**
@@ -59,6 +60,8 @@ class response
 
         //输出数据
         echo $data;
+
+        exit;
     }
 
     /**
@@ -77,6 +80,8 @@ class response
 
         //输出数据
         echo json_encode( $data );
+
+        exit;
     }
 
     /**
@@ -85,8 +90,9 @@ class response
      * @param number $status 数据状态
      * @param $message  数据信息
      * @param array $data 返回数据集 [ array ]
+     * @param array $roles 权限集 [ array ]
      */
-    public function api( $code, $status, $message, $data = array() )
+    public function api( $code, $status, $message, $data = array(), $roles = array() )
     {
         //输出数据
         $this->data( array(
@@ -96,8 +102,11 @@ class response
                 'status' => $status,
                 'message' => $message,
                 'data' => $data
-            )
+            ),
+            'roles' => $roles
         ) );
+
+        exit;
     }
 
     public function __get( $name )

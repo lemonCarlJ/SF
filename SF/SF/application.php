@@ -208,7 +208,7 @@ class application
         }
 
         //修正系统地址常量
-        $command = str_replace( '\\', '/', $command );
+        $command = trim( str_replace( '\\', '/', $command ), '/' );
 
         //获取执行文件路径
         if( ( $execute_route = dirname( $command ) ) != '.' )

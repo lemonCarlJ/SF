@@ -78,7 +78,7 @@ class debug
             //空格符
             $space = '&nbsp;&nbsp;&nbsp;';
 
-            echo '<small>';
+            echo '<br/><small>';
 
             //处理并输出调试信息
             foreach ( $message as $name => $record )
